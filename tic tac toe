@@ -1,0 +1,150 @@
+#18/12/2024
+#المالك: ايهم حسن دندن
+import tkinter as tk
+import random
+
+class TicTacToe:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Tic Tac Toe")
+        self.board = [[" " for _ in range(3)] for _ in range(3)]
+        self.current_player = "X"
+        self.buttons = [[None for _ in range(3)] for _ in range(3)]
+        self.ai_enabled = False
+        self.player_score = 0
+        self.ai_score = 0
+        self.rounds = 0
+        self.max_rounds = 5
+        self.create_selection_screen()
+
+    def create_selection_screen(self):
+        self.selection_frame = tk.Frame(self.root, bg="#4CAF50")
+        self.selection_frame.pack(expand=True, fill="both")
+
+        self.label = tk.Label(self.selection_frame, text="اختر وضع اللعب:", font=('Arial', 24), bg="#4CAF50", fg="white")
+        self.label.pack(pady=20)
+
+        self.vs_ai_button = tk.Button(self.selection_frame, text="ضد الذكاء الاصطناعي", font=('Arial', 18), bg="#f1c40f", fg="black", command=self.start_vs_ai)
+        self.vs_ai_button.pack(pady=10, ipadx=10, ipady=10)
+
+        self.vs_player_button = tk.Button(self.selection_frame, text="ضد لاعب آخر", font=('Arial', 18), bg="#f1c40f", fg="black", command=self.start_vs_player)
+        self.vs_player_button.pack(pady=10, ipadx=10, ipady=10)
+
+    def start_vs_ai(self):
+        self.ai_enabled = True
+        self.selection_frame.destroy()
+        self.create_board()
+        self.update_score()
+
+    def start_vs_player(self):
+        self.ai_enabled = False
+        self.selection_frame.destroy()
+        self.create_board()
+        self.update_score()
+
+    def create_board(self):
+        self.board_frame = tk.Frame(self.root)
+        self.board_frame.pack()
+
+        self.message_frame = tk.Frame(self.root)
+        self.message_frame.pack()
+
+        self.message_label = tk.Label(self.message_frame, text="", font=('Arial', 18), bg="#e1e1e1", fg="black", bd=2, relief="solid")
+        self.message_label.pack(pady=10)
+
+        self.score_label = tk.Label(self.message_frame, text="", font=('Arial', 18), bg="#e1e1e1", fg="black", bd=2, relief="solid")
+        self.score_label.pack(pady=10)
+
+        self.exit_button = tk.Button(self.message_frame, text="خروج", font=('Arial', 18), bg="#e74c3c", fg="white", command=self.reset_game)
+        self.exit_button.pack(pady=10)
+
+        for r in range(3):
+            for c in range(3):
+                self.buttons[r][c] = tk.Button(self.board_frame, text=" ", font=('normal', 40), width=10, height=2,
+                                               command=lambda r=r, c=c: self.on_click(r, c))
+                self.buttons[r][c].grid(row=r, column=c)
+
+    def on_click(self, r, c):
+        if self.board[r][c] == " ":
+            self.board[r][c] = self.current_player
+            self.buttons[r][c].config(text=self.current_player)
+            if self.check_winner(self.current_player):
+                self.message_label.config(text=f"Player {self.current_player} wins this round!")
+                self.update_score(winner=self.current_player)
+                self.reset_board()
+            elif not any(" " in row for row in self.board):
+                self.message_label.config(text="It's a tie!")
+                self.reset_board()
+            else:
+                self.current_player = "O" if self.current_player == "X" else "X"
+                if self.ai_enabled and self.current_player == "O":
+                    self.root.after(500, self.ai_move)
+
+    def ai_move(self):
+        empty_cells = [(r, c) for r in range(3) for c in range(3) if self.board[r][c] == " "]
+        r, c = random.choice(empty_cells)
+        self.board[r][c] = self.current_player
+        self.buttons[r][c].config(text=self.current_player)
+        if self.check_winner(self.current_player):
+            self.message_label.config(text=f"Player {self.current_player} wins this round!")
+            self.update_score(winner=self.current_player)
+            self.reset_board()
+        elif not any(" " in row for row in self.board):
+            self.message_label.config(text="It's a tie!")
+            self.reset_board()
+        else:
+            self.current_player = "X"
+
+    def check_winner(self, player):
+        for row in self.board:
+            if all([cell == player for cell in row]):
+                return True
+        for col in range(3):
+            if all([self.board[row][col] == player for row in range(3)]):
+                return True
+        if all([self.board[i][i] == player for i in range(3)]) or all([self.board[i][2 - i] == player for i in range(3)]):
+            return True
+        return False
+
+    def reset_board(self):
+        self.board = [[" " for _ in range(3)] for _ in range(3)]
+        for r in range(3):
+            for c in range(3):
+                self.buttons[r][c].config(text=" ")
+        self.current_player = "X"
+        self.rounds += 1
+        if self.rounds >= self.max_rounds:
+            self.check_final_winner()
+
+    def update_score(self, winner=None):
+        if winner == "X":
+            self.player_score += 1
+        elif winner == "O":
+            self.ai_score += 1
+        score_text = f"Player X: {self.player_score} - Player O: {self.ai_score}"
+        self.score_label.config(text=score_text)
+        self.check_final_winner()
+
+    def check_final_winner(self):
+        if self.player_score >= 5 or self.ai_score >= 5:
+            if self.player_score > self.ai_score:
+                self.message_label.config(text=f"Player X wins the game with score {self.player_score} to {self.ai_score}!")
+            elif self.ai_score > self.player_score:
+                self.message_label.config(text=f"Player O wins the game with score {self.ai_score} to {self.player_score}!")
+            self.root.after(3000, self.reset_game)
+
+    def reset_game(self):
+        self.player_score = 0
+        self.ai_score = 0
+        self.rounds = 0
+        self.max_rounds = 5
+        self.message_label.config(text="")
+        self.score_label.config(text="")
+        self.board_frame.destroy()
+        self.message_frame.destroy()
+        self.create_selection_screen()
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    game = TicTacToe(root)
+    root.mainloop()
